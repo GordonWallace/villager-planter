@@ -1,0 +1,35 @@
+{
+	"schemaVersion": 1,
+	"id": "villagerplanter",
+	"version": "${version}",
+	"name": "villager-planter",
+	"description": "",
+	"authors": [
+		"gwallace"
+	],
+	"contact": {},
+	"license": "MIT",
+	"icon": "assets/villagerplanter/icon.png",
+	"environment": "*",
+	"entrypoints": {
+		"main": [
+			"com.gwallace.villagerplanter.VillagerPlanterMod"
+		],
+		"client": [
+			"com.gwallace.villagerplanter.VillagerPlanterModClient"
+		]
+	},
+	"mixins": [
+		"villagerplanter.mixins.json",
+		{
+			"config": "villagerplanter.client.mixins.json",
+			"environment": "client"
+		}
+	],
+	"depends": {
+		"fabricloader": ">=0.18.4",
+		"minecraft": "~1.21.11",
+		"java": ">=21",
+		"fabric-api": "*"
+	}
+}
