@@ -2,6 +2,7 @@ package com.gwallace.villagerplanter.behavior;
 
 import com.google.common.collect.ImmutableMap;
 import com.gwallace.villagerplanter.VillagerPlanterMod;
+import com.gwallace.villagerplanter.compat.FallingTreeCompat;
 import com.gwallace.villagerplanter.registry.ModVillagers;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
@@ -82,8 +83,8 @@ public class CutTreeBehavior extends Behavior<Villager> {
 
 		if (villager.blockPosition().closerThan(targetLog, REACH)) {
 			VillagerPlanterMod.LOGGER.info("[villager-planter] Villager cutting tree at {}", targetLog);
-			// Pass villager as source entity — FallingTree hooks into this for entity breaks
-			level.destroyBlock(targetLog, true, villager);
+			// Use FallingTree if available, otherwise simple block break
+			FallingTreeCompat.breakTree(level, villager, targetLog, level.getBlockState(targetLog));
 			targetLog = null;
 		} else {
 			// Re-apply walk target if cleared or overridden (same pattern as PlantSaplingBehavior)
