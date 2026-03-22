@@ -34,6 +34,7 @@ public class CutTreeBehavior extends Behavior<Villager> {
 	private static final int SEARCH_Y_DOWN = 2;
 	private static final int LEAF_CHECK_RADIUS = 6;
 	private static final int MAX_TREE_LOGS = 64;
+	private static final int MAX_TREE_LEAVES = 256;
 	private static final int MIN_FREE_SLOTS = 2;
 	private static final float SPEED = 0.5F;
 	private static final int REACH = 3;
@@ -91,6 +92,11 @@ public class CutTreeBehavior extends Behavior<Villager> {
 			treeLogsToBreak.stream()
 				.sorted((a, b) -> Integer.compare(b.getY(), a.getY())) // descending Y order (top to bottom)
 				.forEach(pos -> level.destroyBlock(pos, true, villager));
+			
+			// Break all connected leaves
+			Set<BlockPos> treeLeavesToBreak = collectTreeLeaves(level, treeLogsToBreak);
+			treeLeavesToBreak.forEach(pos -> level.destroyBlock(pos, true, villager));
+			
 			targetLog = null;
 			treeLogsToBreak = null;
 		} else {
@@ -179,6 +185,35 @@ public class CutTreeBehavior extends Behavior<Villager> {
 			}
 		}
 		return lowest;
+	}
+
+	// BFS from logs to find all connected leaves; returns all leaf positions.
+	private static Set<BlockPos> collectTreeLeaves(ServerLevel level, Set<BlockPos> treeLogs) {
+		Set<BlockPos> visitedLeaves = new HashSet<>();
+		Set<BlockPos> visited = new HashSet<>(treeLogs);
+		Queue<BlockPos> queue = new ArrayDeque<>(treeLogs);
+
+		while (!queue.isEmpty() && visitedLeaves.size() <= MAX_TREE_LEAVES) {
+			BlockPos current = queue.poll();
+			for (Direction dir : Direction.values()) {
+				BlockPos neighbor = current.relative(dir);
+				if (!visited.contains(neighbor)) {
+					visited.add(neighbor);
+					BlockState neighborState = level.getBlockState(neighbor);
+					// If neighbor is a leaf, add it to leaves to break and continue searching
+					if (neighborState.is(BlockTags.LEAVES)) {
+						visitedLeaves.add(neighbor);
+						queue.add(neighbor);
+					}
+					// If neighbor is a log, continue searching through it (but we only care about leaves)
+					else if (neighborState.is(BlockTags.LOGS_THAT_BURN)) {
+						queue.add(neighbor);
+					}
+					// Otherwise, stop searching in this direction
+				}
+			}
+		}
+		return visitedLeaves;
 	}
 
 	// Returns true if at least one non-persistent (naturally grown) leaf exists within radius.
