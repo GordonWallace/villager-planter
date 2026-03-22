@@ -2,7 +2,6 @@ package com.gwallace.villagerplanter.behavior;
 
 import com.google.common.collect.ImmutableMap;
 import com.gwallace.villagerplanter.VillagerPlanterMod;
-import com.gwallace.villagerplanter.compat.FallingTreeCompat;
 import com.gwallace.villagerplanter.registry.ModVillagers;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
@@ -42,6 +41,7 @@ public class CutTreeBehavior extends Behavior<Villager> {
 	private static final int MAX_DURATION = 800;
 
 	private BlockPos targetLog;
+	private Set<BlockPos> treeLogsToBreak;
 	private long nextOkStartTime;
 
 	public CutTreeBehavior() {
@@ -58,7 +58,10 @@ public class CutTreeBehavior extends Behavior<Villager> {
 		if (!level.getGameRules().get(GameRules.MOB_GRIEFING)) return false;
 		if (countFreeSlots(villager) < MIN_FREE_SLOTS) return false;
 		targetLog = findTreeBase(level, villager);
-		return targetLog != null;
+		if (targetLog == null) return false;
+		// Find all logs in the tree
+		treeLogsToBreak = collectAllTreeLogs(level, targetLog);
+		return !treeLogsToBreak.isEmpty();
 	}
 
 	@Override
@@ -73,19 +76,23 @@ public class CutTreeBehavior extends Behavior<Villager> {
 
 	@Override
 	protected void tick(ServerLevel level, Villager villager, long gameTime) {
-		if (targetLog == null) return;
-
-		// Target log was already felled (by FallingTree cascade or another source)
-		if (!level.getBlockState(targetLog).is(BlockTags.LOGS_THAT_BURN)) {
+		if (targetLog == null || treeLogsToBreak == null || treeLogsToBreak.isEmpty()) {
 			targetLog = null;
+			treeLogsToBreak = null;
 			return;
 		}
 
+		// Remove already-broken logs (in case other sources broke them)
+		treeLogsToBreak.removeIf(pos -> !level.getBlockState(pos).is(BlockTags.LOGS_THAT_BURN));
+
 		if (villager.blockPosition().closerThan(targetLog, REACH)) {
-			VillagerPlanterMod.LOGGER.info("[villager-planter] Villager cutting tree at {}", targetLog);
-			// Use FallingTree if available, otherwise simple block break
-			FallingTreeCompat.breakTree(level, villager, targetLog, level.getBlockState(targetLog));
+			VillagerPlanterMod.LOGGER.info("[villager-planter] Villager cutting tree at {} ({} logs)", targetLog, treeLogsToBreak.size());
+			// Break all logs in the tree (from top to bottom by breaking in descending Y order)
+			treeLogsToBreak.stream()
+				.sorted((a, b) -> Integer.compare(b.getY(), a.getY())) // descending Y order (top to bottom)
+				.forEach(pos -> level.destroyBlock(pos, true, villager));
 			targetLog = null;
+			treeLogsToBreak = null;
 		} else {
 			// Re-apply walk target if cleared or overridden (same pattern as PlantSaplingBehavior)
 			Optional<WalkTarget> currentWalk = villager.getBrain().getMemory(MemoryModuleType.WALK_TARGET);
@@ -99,6 +106,7 @@ public class CutTreeBehavior extends Behavior<Villager> {
 	protected void stop(ServerLevel level, Villager villager, long gameTime) {
 		nextOkStartTime = gameTime + COOLDOWN_TICKS;
 		targetLog = null;
+		treeLogsToBreak = null;
 	}
 
 	private static BlockPos findTreeBase(ServerLevel level, Villager villager) {
@@ -125,6 +133,27 @@ public class CutTreeBehavior extends Behavior<Villager> {
 			return floodFillLowestLog(level, seed);
 		}
 		return null;
+	}
+
+	// BFS flood-fill across 6-face-connected LOGS_THAT_BURN blocks; returns all members.
+	private static Set<BlockPos> collectAllTreeLogs(ServerLevel level, BlockPos seed) {
+		Set<BlockPos> visited = new HashSet<>();
+		Queue<BlockPos> queue = new ArrayDeque<>();
+		queue.add(seed);
+		visited.add(seed);
+
+		while (!queue.isEmpty() && visited.size() <= MAX_TREE_LOGS) {
+			BlockPos current = queue.poll();
+			for (Direction dir : Direction.values()) {
+				BlockPos neighbor = current.relative(dir);
+				if (!visited.contains(neighbor)
+						&& level.getBlockState(neighbor).is(BlockTags.LOGS_THAT_BURN)) {
+					visited.add(neighbor);
+					queue.add(neighbor);
+				}
+			}
+		}
+		return visited;
 	}
 
 	// BFS flood-fill across 6-face-connected LOGS_THAT_BURN blocks; returns the lowest-Y member.

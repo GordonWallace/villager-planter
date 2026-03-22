@@ -45,11 +45,6 @@ dependencies {
 	mappings loom.officialMojangMappings()
 	modImplementation "net.fabricmc:fabric-loader:${project.loader_version}"
 	modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_version}"
-	
-	// FallingTree: optional compile dependency for tree-breaking integration
-	// Compiles against it but not required at runtime (soft dependency)
-	modCompileOnly fileTree(dir: 'libs', include: '*FallingTree*.jar')
-	
 	// Load companion mods in dev — exclude FallingTree (no refMap, mixins crash under Mojang mappings)
 	modLocalRuntime files(fileTree(dir: 'libs', include: '*.jar', exclude: 'FallingTree*'))
 }
