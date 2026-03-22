@@ -17,12 +17,20 @@ public class VillagerWantsToPickUpMixin {
 
 	@Inject(method = "wantsToPickUp", at = @At("HEAD"), cancellable = true)
 	private void allowForesterPickup(ServerLevel level, ItemStack stack, CallbackInfoReturnable<Boolean> cir) {
-		if (stack.is(ItemTags.SAPLINGS) || stack.is(Items.EMERALD)) {
+		if (isForesterItem(stack)) {
 			Villager villager = (Villager) (Object) this;
 			if (villager.getVillagerData().profession().is(ModVillagers.FORESTER_KEY)
 					&& level.getGameRules().get(GameRules.MOB_GRIEFING)) {
 				cir.setReturnValue(true);
 			}
 		}
+	}
+
+	private static boolean isForesterItem(ItemStack stack) {
+		return stack.is(ItemTags.SAPLINGS)
+				|| stack.is(Items.EMERALD)
+				|| stack.is(ItemTags.LOGS_THAT_BURN)
+				|| stack.is(Items.STICK)
+				|| stack.is(Items.APPLE);
 	}
 }

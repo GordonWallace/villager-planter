@@ -1,6 +1,7 @@
 package com.gwallace.villagerplanter.mixin;
 
 import com.google.common.collect.ImmutableList;
+import com.gwallace.villagerplanter.behavior.CutTreeBehavior;
 import com.gwallace.villagerplanter.behavior.PlantSaplingBehavior;
 import com.gwallace.villagerplanter.registry.ModVillagers;
 import com.mojang.datafixers.util.Pair;
@@ -28,7 +29,9 @@ public class VillagerGoalPackagesMixin {
 
 		for (Pair<Integer, ? extends BehaviorControl<? super Villager>> pair : cir.getReturnValue()) {
 			if (pair.getSecond() instanceof RunOne<?> runOne) {
-				((ShufflingList) ((GateBehaviorAccessor) runOne).getBehaviors()).add(new PlantSaplingBehavior(), 10);
+				ShufflingList behaviors = (ShufflingList) ((GateBehaviorAccessor) runOne).getBehaviors();
+				behaviors.add(new PlantSaplingBehavior(), 10);
+				behaviors.add(new CutTreeBehavior(), 8);
 				return;
 			}
 		}

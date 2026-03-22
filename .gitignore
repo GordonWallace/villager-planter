@@ -28,6 +28,10 @@ bin/
 
 *.DS_Store
 
+# local libs (binary JARs, not committed)
+
+libs/
+
 # fabric
 
 run/

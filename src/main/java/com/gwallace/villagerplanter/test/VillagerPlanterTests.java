@@ -14,6 +14,7 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.item.trading.MerchantOffer;
 import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.LeavesBlock;
 import net.minecraft.world.level.gamerules.GameRules;
 
 public class VillagerPlanterTests {
@@ -335,6 +336,120 @@ public class VillagerPlanterTests {
 				}
 			}
 			helper.fail("No sapling block was planted");
+		});
+	}
+
+	/**
+	 * Verify that a forester cuts a natural tree (log + persistent=false leaves).
+	 * The base log must become air after the forester reaches and breaks it.
+	 * If FallingTree is active, the whole tree cascades; either way the base log is gone.
+	 */
+	@GameTest(maxTicks = 8000, structure = "fabric-gametest-api-v1:empty")
+	public void foresterCutsDownTree(GameTestHelper helper) {
+		// Floor of grass
+		for (int x = 0; x < 8; x++) {
+			for (int z = 0; z < 8; z++) {
+				helper.setBlock(new BlockPos(x, 1, z), Blocks.GRASS_BLOCK);
+			}
+		}
+
+		// Place band saw and bed
+		helper.setBlock(new BlockPos(3, 2, 3), ModBlocks.BAND_SAW);
+		helper.setBlock(new BlockPos(5, 2, 3), Blocks.RED_BED);
+
+		// Build a minimal natural tree: one log with persistent=false leaves around it
+		BlockPos logPos = new BlockPos(1, 2, 1);
+		helper.setBlock(logPos, Blocks.OAK_LOG);
+		for (BlockPos leaf : new BlockPos[]{
+				new BlockPos(0, 2, 1), new BlockPos(2, 2, 1),
+				new BlockPos(1, 2, 0), new BlockPos(1, 2, 2),
+				new BlockPos(1, 3, 1)}) {
+			helper.setBlock(leaf, Blocks.OAK_LEAVES.defaultBlockState()
+					.setValue(LeavesBlock.PERSISTENT, false)
+					.setValue(LeavesBlock.DISTANCE, 1));
+		}
+
+		// Spawn villager
+		helper.spawn(EntityType.VILLAGER, new BlockPos(3, 2, 4));
+
+		// Succeed when the forester has broken the base log
+		helper.succeedWhen(() -> {
+			Villager v = helper.findOneEntity(EntityType.VILLAGER);
+			if (!v.getVillagerData().profession().is(ModVillagers.FORESTER_KEY)) {
+				helper.fail("Villager not yet a forester");
+			}
+			helper.assertBlockNotPresent(Blocks.OAK_LOG, logPos);
+		});
+	}
+
+	/**
+	 * Verify that a forester ignores log blocks that have no natural (persistent=false)
+	 * leaves nearby — e.g. a player-placed log pile.
+	 */
+	@GameTest(maxTicks = 6000, structure = "fabric-gametest-api-v1:empty")
+	public void foresterIgnoresPlayerLogs(GameTestHelper helper) {
+		// Floor of grass
+		for (int x = 0; x < 8; x++) {
+			for (int z = 0; z < 8; z++) {
+				helper.setBlock(new BlockPos(x, 1, z), Blocks.GRASS_BLOCK);
+			}
+		}
+
+		// Place band saw and bed
+		helper.setBlock(new BlockPos(3, 2, 3), ModBlocks.BAND_SAW);
+		helper.setBlock(new BlockPos(5, 2, 3), Blocks.RED_BED);
+
+		// Bare log — no leaves anywhere nearby
+		BlockPos logPos = new BlockPos(1, 2, 1);
+		helper.setBlock(logPos, Blocks.OAK_LOG);
+
+		// Spawn villager
+		helper.spawn(EntityType.VILLAGER, new BlockPos(3, 2, 4));
+
+		// After a long wait the log should be untouched
+		helper.runAfterDelay(5000, () -> {
+			helper.assertBlockPresent(Blocks.OAK_LOG, logPos);
+			helper.succeed();
+		});
+	}
+
+	/**
+	 * Verify that a forester with fewer than 2 free inventory slots does not cut trees.
+	 */
+	@GameTest(maxTicks = 6000, structure = "fabric-gametest-api-v1:empty")
+	public void foresterNeedsInventorySpace(GameTestHelper helper) {
+		// Floor of grass
+		for (int x = 0; x < 8; x++) {
+			for (int z = 0; z < 8; z++) {
+				helper.setBlock(new BlockPos(x, 1, z), Blocks.GRASS_BLOCK);
+			}
+		}
+
+		// Place band saw and bed
+		helper.setBlock(new BlockPos(3, 2, 3), ModBlocks.BAND_SAW);
+		helper.setBlock(new BlockPos(5, 2, 3), Blocks.RED_BED);
+
+		// Build a natural tree
+		BlockPos logPos = new BlockPos(1, 2, 1);
+		helper.setBlock(logPos, Blocks.OAK_LOG);
+		for (BlockPos leaf : new BlockPos[]{
+				new BlockPos(0, 2, 1), new BlockPos(2, 2, 1),
+				new BlockPos(1, 2, 0), new BlockPos(1, 2, 2)}) {
+			helper.setBlock(leaf, Blocks.OAK_LEAVES.defaultBlockState()
+					.setValue(LeavesBlock.PERSISTENT, false)
+					.setValue(LeavesBlock.DISTANCE, 1));
+		}
+
+		// Spawn villager and immediately fill all but 1 inventory slot (leaves 1 free slot < MIN_FREE_SLOTS=2)
+		Villager villager = helper.spawn(EntityType.VILLAGER, new BlockPos(3, 2, 4));
+		for (int i = 0; i < villager.getInventory().getContainerSize() - 1; i++) {
+			villager.getInventory().setItem(i, new ItemStack(Items.COBBLESTONE, 64));
+		}
+
+		// After a long wait the log should be untouched
+		helper.runAfterDelay(5000, () -> {
+			helper.assertBlockPresent(Blocks.OAK_LOG, logPos);
+			helper.succeed();
 		});
 	}
 }
