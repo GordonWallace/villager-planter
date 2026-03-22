@@ -1,16 +1,16 @@
 {
 	"type": "minecraft:crafting_shaped",
 	"pattern": [
-		"III",
-		"IXI",
+		"IFI",
+		"IFI",
 		"SSS"
 	],
 	"key": {
 		"I": {
 			"item": "minecraft:iron_ingot"
 		},
-		"X": {
-			"item": "minecraft:shears"
+		"F": {
+			"item": "minecraft:flint"
 		},
 		"S": {
 			"item": "minecraft:stone"
