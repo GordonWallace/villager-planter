@@ -2,8 +2,8 @@
 	"schemaVersion": 1,
 	"id": "villagerplanter",
 	"version": "${version}",
-	"name": "villager-planter",
-	"description": "",
+	"name": "Villager Tree Planter",
+	"description": "Adds a Forester villager profession that picks up saplings and plants them on nearby dirt/grass blocks, avoiding village infrastructure.",
 	"authors": [
 		"gwallace"
 	],
@@ -15,16 +15,12 @@
 		"main": [
 			"com.gwallace.villagerplanter.VillagerPlanterMod"
 		],
-		"client": [
-			"com.gwallace.villagerplanter.VillagerPlanterModClient"
+		"fabric-gametest": [
+			"com.gwallace.villagerplanter.test.VillagerPlanterTests"
 		]
 	},
 	"mixins": [
-		"villagerplanter.mixins.json",
-		{
-			"config": "villagerplanter.client.mixins.json",
-			"environment": "client"
-		}
+		"villagerplanter.mixins.json"
 	],
 	"depends": {
 		"fabricloader": ">=0.18.4",

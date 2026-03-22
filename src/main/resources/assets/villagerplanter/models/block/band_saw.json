@@ -1,0 +1,12 @@
+{
+	"parent": "minecraft:block/cube",
+	"textures": {
+		"north": "villagerplanter:block/band_saw_front",
+		"south": "villagerplanter:block/band_saw_side",
+		"east": "villagerplanter:block/band_saw_side",
+		"west": "villagerplanter:block/band_saw_side",
+		"up": "villagerplanter:block/band_saw_top",
+		"down": "villagerplanter:block/band_saw_bottom",
+		"particle": "villagerplanter:block/band_saw_front"
+	}
+}

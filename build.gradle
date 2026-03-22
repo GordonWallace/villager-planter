@@ -24,6 +24,22 @@ loom {
 	}
 }
 
+fabricApi {
+	configureTests {
+		enableGameTests = true
+		enableClientGameTests = false
+		eula = true
+		clearRunDirectory = true
+	}
+}
+
+// Add JUnit XML reporting to the gametest run
+afterEvaluate {
+	tasks.matching { it.name == 'runGameTest' }.configureEach {
+		jvmArgs '-Dfabric-api.gametest.report-file=' + project.layout.buildDirectory.file('gametest-results/junit.xml').get().asFile.absolutePath
+	}
+}
+
 dependencies {
 	minecraft "com.mojang:minecraft:${project.minecraft_version}"
 	mappings loom.officialMojangMappings()
